@@ -13,6 +13,7 @@ import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.Objects;
 
 public class BindWindowDemo extends JFrame {
 
@@ -105,26 +106,22 @@ public class BindWindowDemo extends JFrame {
             JOptionPane.showMessageDialog(this, "请先绑定窗口！");
             return;
         }
-        clickImage("C:\\Users\\DELL\\IdeaProjects\\untitled\\src\\main\\resources\\target.bmp", 0);
+        clickImage(bindHwnd, "target.bmp", 0);
+        clickImage(bindHwnd, "message.bmp", 2000);
     }
 
     /**
      * 在绑定窗口内点击指定图片
-     * @param imagePath 图片路径
+     * @param imageName 图片文件名称
      * @param delayMs   延迟时间（毫秒），可以传 0
      */
-    private void clickImage(String imagePath, int delayMs) {
-        if (bindHwnd == 0) {
-            JOptionPane.showMessageDialog(this, "请先绑定窗口！");
-            return;
-        }
-
+    public void clickImage(long hwnd, String imageName, int delayMs) {
         new Thread(() -> {
             try {
                 if (delayMs > 0) Thread.sleep(delayMs);
 
                 RECT rect = new RECT();
-                User32Ex.INSTANCE.GetWindowRect(new HWND(new Pointer(bindHwnd)), rect);
+                User32Ex.INSTANCE.GetWindowRect(new HWND(new Pointer(hwnd)), rect);
                 int width = rect.right - rect.left;
                 int height = rect.bottom - rect.top;
 
@@ -133,30 +130,26 @@ public class BindWindowDemo extends JFrame {
                         new Rectangle(rect.left, rect.top, width, height)
                 );
 
-                BufferedImage target = ImageIO.read(new File(imagePath));
-
+                // 读取资源图片
+                BufferedImage target = ImageIO.read(Objects.requireNonNull(getClass().getClassLoader().getResourceAsStream("images/" + imageName)));
                 Point p = findImage(screenshot, target);
+
                 if (p != null) {
                     int x = p.x + target.getWidth() / 2;
                     int y = p.y + target.getHeight() / 2;
                     int lParam = (y << 16) | (x & 0xFFFF);
 
-                    HWND hWnd = new HWND(new Pointer(bindHwnd));
-                    // 后台点击
+                    HWND hWnd = new HWND(new Pointer(hwnd));
                     User32Ex.INSTANCE.SendMessageW(hWnd, User32Ex.WM_LBUTTONDOWN, 0, lParam);
                     User32Ex.INSTANCE.SendMessageW(hWnd, User32Ex.WM_LBUTTONUP, 0, lParam);
 
-                    SwingUtilities.invokeLater(() ->
-                            info.setText("点击成功: " + imagePath + " -> " + x + "," + y));
+                    System.out.println("点击成功: " + imageName + " -> " + x + "," + y);
                 } else {
-                    SwingUtilities.invokeLater(() ->
-                            info.setText("未找到图片: " + imagePath));
+                    System.out.println("未找到图片: " + imageName);
                 }
 
             } catch (Exception ex) {
                 ex.printStackTrace();
-                SwingUtilities.invokeLater(() ->
-                        info.setText("执行错误: " + ex.getMessage()));
             }
         }).start();
     }

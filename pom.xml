@@ -26,13 +26,6 @@
             <artifactId>opencv</artifactId>
             <version>4.9.0</version>
         </dependency>
-
-        <dependency>
-            <groupId>com.jacobcom</groupId>
-            <artifactId>jacob</artifactId>
-            <version>1.20</version>
-        </dependency>
-
     </dependencies>
 
     <properties>
