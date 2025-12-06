@@ -8,34 +8,65 @@ import javafx.scene.web.WebView;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.List;
 
-public class WebGameMultiDemo {
+public class WebGameMultiDemo extends JFrame {
 
-    public static void main(String[] args) {
-        int multiCount = 3; // 指定多开数量，比如 3 个窗口
+    private JPanel container;
+
+    public WebGameMultiDemo(List<String> accounts, List<String> passwords, int multiCount) {
+        setTitle("页游多开 + 自动登录");
+        setSize(1200, 800);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setLayout(new GridLayout(0, 2)); // 网格布局，多开显示
+
+        container = new JPanel();
+        container.setLayout(new GridLayout(0, 2));
+        add(container);
+
+        // 初始化 JavaFX
+        new JFXPanel(); // 必须先初始化
 
         for (int i = 0; i < multiCount; i++) {
-            int index = i + 1;
-            SwingUtilities.invokeLater(() -> createGameWindow("页游窗口 " + index, "https://msdzls.cn/"));
+            final int idx = i;
+            JPanel panel = new JPanel(new BorderLayout());
+            add(panel);
+
+            JFXPanel fxPanel = new JFXPanel();
+            panel.add(fxPanel, BorderLayout.CENTER);
+
+            Platform.runLater(() -> {
+                WebView webView = new WebView();
+                WebEngine webEngine = webView.getEngine();
+
+                // 页游地址
+                webEngine.load("https://my.4399.com/yxmsdzls/");
+
+                fxPanel.setScene(new Scene(webView));
+
+                // 自动登录
+                webEngine.documentProperty().addListener((obs, oldDoc, newDoc) -> {
+                    if (newDoc != null) {
+                        String account = accounts.get(idx);
+                        String password = passwords.get(idx);
+                        String jsCode = ""
+                                + "document.getElementById('username').value='" + account + "';"
+                                + "document.getElementById('password').value='" + password + "';"
+                                + "document.getElementById('loginBtn').click();";
+                        webEngine.executeScript(jsCode);
+                    }
+                });
+            });
         }
+
+        setVisible(true);
     }
 
-    private static void createGameWindow(String title, String url) {
-        JFrame frame = new JFrame(title);
-        frame.setSize(1024, 768);
-        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        frame.setLayout(new BorderLayout());
+    public static void main(String[] args) {
+        // 账号密码列表
+        List<String> accounts = List.of("user1", "user2", "user3");
+        List<String> passwords = List.of("pass1", "pass2", "pass3");
 
-        JFXPanel fxPanel = new JFXPanel();
-        frame.add(fxPanel, BorderLayout.CENTER);
-
-        Platform.runLater(() -> {
-            WebView webView = new WebView();
-            WebEngine webEngine = webView.getEngine();
-            webEngine.load(url);
-            fxPanel.setScene(new Scene(webView));
-        });
-
-        frame.setVisible(true);
+        SwingUtilities.invokeLater(() -> new WebGameMultiDemo(accounts, passwords, accounts.size()));
     }
 }
